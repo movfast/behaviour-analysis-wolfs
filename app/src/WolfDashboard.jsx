@@ -134,15 +134,42 @@ function TrackMap() {
   const W=420, H=300;
   const pad=20;
   const [hover,setHover] = useState(null);
+  const [showPaths,setShowPaths] = useState(true);
+
+  // Build polyline points per wolf
+  const wolfPaths = wolves.map((wId,wi)=>{
+    const pts = sampleTracks
+      .filter(d=>d.animal_id===wId)
+      .map(d=>{
+        const [x,y] = toSVG(d.lat,d.lon,minLat,maxLat,minLon,maxLon,W-2*pad,H-2*pad);
+        return [x+pad,y+pad];
+      });
+    return {id:wId, color:WOLF_COLORS[wi], points:pts.map(p=>p.join(",")).join(" ")};
+  });
 
   return (
     <div>
-      <SectionTitle sub="GPS fix locations colored by inferred behavioral state">Movement Trajectories</SectionTitle>
+      <SectionTitle sub="GPS fix locations colored by inferred behavioral state — lines show movement paths">Movement Trajectories</SectionTitle>
+      <div style={{marginBottom:10}}>
+        <label style={{display:"inline-flex",alignItems:"center",gap:8,cursor:"pointer",color:"#94a3b8",fontSize:13}}>
+          <input type="checkbox" checked={showPaths} onChange={e=>setShowPaths(e.target.checked)}
+            style={{accentColor:"#60a5fa"}}/>
+          Show movement paths
+        </label>
+      </div>
       <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
         <svg width={W} height={H} style={{background:"#0f172a",borderRadius:10,border:"1px solid #1e293b",flex:"0 0 auto"}}>
           {/* grid lines */}
           {[0,1,2,3].map(i=><line key={i} x1={pad} x2={W-pad} y1={pad+(H-2*pad)*i/3} y2={pad+(H-2*pad)*i/3} stroke="#1e293b" strokeWidth={1}/>)}
           {[0,1,2,3].map(i=><line key={i} x1={pad+(W-2*pad)*i/3} x2={pad+(W-2*pad)*i/3} y1={pad} y2={H-pad} stroke="#1e293b" strokeWidth={1}/>)}
+          {/* movement path lines */}
+          {showPaths && wolfPaths.map(wp=>(
+            <polyline key={wp.id} points={wp.points} fill="none" stroke={wp.color}
+              strokeWidth={hover===wp.id?2.5:1.5} strokeLinejoin="round" strokeLinecap="round"
+              opacity={hover&&hover!==wp.id?0.1:0.55}
+              style={{transition:"all 0.15s"}}/>
+          ))}
+          {/* GPS fix dots */}
           {sampleTracks.map((d,i)=>{
             const [x,y] = toSVG(d.lat,d.lon,minLat,maxLat,minLon,maxLon,W-2*pad,H-2*pad);
             return <circle key={i} cx={x+pad} cy={y+pad} r={hover===d.animal_id?5:3.5}
@@ -505,6 +532,9 @@ export default function App() {
           <p style={{color:"#94a3b8",fontSize:13,lineHeight:1.65,margin:0}}>Try adding accelerometer data (ODBA) for even higher accuracy. Explore Hidden Markov Models for sequential behavior inference. Test transfer learning: can a model trained on one pack generalize to another population?</p>
         </Section>
       </div>}
+      <footer style={{ textAlign: "center", padding: "24px", color: "#64748b", fontSize: "12px" }}>
+        Created by Marian Helcl Øverli
+      </footer>
     </div>
   );
 }
